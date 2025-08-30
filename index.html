@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>✈️ 機場接送查價與預約</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f9f9f9;margin:0;padding:0;}
+.container{max-width:600px;margin:30px auto;background:#fff;padding:25px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.1);}
+h2{text-align:center;color:#333;}
+label{display:block;margin-top:15px;color:#555;font-weight:500;}
+select,input,textarea{width:100%;padding:12px;margin-top:5px;border:1px solid #ccc;border-radius:8px;box-sizing:border-box;font-size:16px;}
+textarea{resize:vertical;}
+button{width:100%;padding:15px;margin-top:20px;font-size:18px;border:none;border-radius:8px;cursor:pointer;}
+#checkPriceBtn{background:#4CAF50;color:white;}
+#checkPriceBtn:hover{background:#45a049;}
+#reserveBtn{background:#FF9800;color:white;}
+#reserveBtn:hover{background:#e68a00;}
+#priceBox{margin-top:20px;padding:15px;background:#eef9f3;border-left:5px solid #4CAF50;border-radius:8px;}
+#formBox{display:none;margin-top:20px;padding:15px;background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.1);}
+#resultBox{display:none;margin-top:20px;padding:15px;background-color:#eef9f3;border-left:5px solid #4CAF50;border-radius:8px;}
+#resultText{width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;font-size:16px;margin-top:10px;resize:none;}
+.actionBtn{margin-top:10px;color:white;padding:12px;border:none;border-radius:6px;font-size:16px;cursor:pointer;width:100%;}
+#copyBtn{background:#2196F3;} #copyBtn:hover{background:#1976D2;}
+#lineBtn{background:#00B900;} #lineBtn:hover{background:#009900;}
+#callBtn1,#callBtn2{background:#FF9800;} #callBtn1:hover,#callBtn2:hover{background:#e68a00;}
+.callInfo{margin-top:15px;color:#333;font-weight:500;text-align:center;}
+#langSelect{margin-top:10px;padding:10px;border-radius:6px;font-size:16px;}
+.note{margin-top:15px;color:#888;font-size:14px;}
+</style>
+</head>
+<body>
+<div class="container">
+<h2 id="title">✈️ 機場接送查價與預約</h2>
+
+<select id="langSelect">
+<option value="zh" selected>中文</option>
+<option value="en">English</option>
+<option value="vi">Tiếng Việt</option>
+<option value="th">ไทย</option>
+<option value="id">Bahasa Indonesia</option>
+<option value="jp">日本語</option>
+</select>
+
+<div id="priceCheck">
+<label id="pickupLabel">上車縣市</label>
+<select id="pickup"></select>
+
+<label id="dropoffLabel">下車機場</label>
+<select id="dropoff"></select>
+
+<label id="seatLabel">車型</label>
+<select id="seat"></select>
+
+<button id="checkPriceBtn">📊 查詢價格</button>
+<div id="priceBox"></div>
+<button id="reserveBtn">📝 我要預約</button>
+</div>
+
+<div id="formBox">
+<form id="bookingForm">
+<label id="dateLabel">上車日期</label>
+<input type="date" id="pickupDate">
+
+<label id="timeLabel">上車時間</label>
+<input type="time" id="pickupTime">
+
+<label id="phoneLabel">電話（可填可不填）</label>
+<input type="tel" id="phone" placeholder="請輸入電話">
+
+<label id="noteLabel">備註（可填可不填）</label>
+<textarea id="note" rows="3" placeholder="可輸入特殊需求或備註"></textarea>
+
+<button type="submit" id="generateBtn">📄 生成叫車訊息</button>
+</form>
+</div>
+
+<div id="resultBox">
+<h3>✅ 訊息生成完成</h3>
+<textarea id="resultText" rows="10" readonly></textarea>
+<button id="copyBtn" class="actionBtn">📋 複製文字到剪貼簿</button>
+<button id="lineBtn" class="actionBtn">💬 聯絡官方 LINE</button>
+</div>
+
+<div class="callInfo">
+<p id="callText">如須電話服務，請直接撥打：</p>
+<button id="callBtn1" class="actionBtn">📞 0977-269-504</button>
+<button id="callBtn2" class="actionBtn">📞 0908-232-851</button>
+</div>
+
+<p class="note" id="priceNote">價格僅供參考，以實際報價為主</p>
+</div>
+
+<script>
+// --- 上車縣市價格資料 ---
+const airportPrices = {
+"台北市":{"桃園國際機場":1200,"台中清泉崗機場":2500,"高雄小港機場":6000},
+"新北市":{"桃園國際機場":1300,"台中清泉崗機場":3200,"高雄小港機場":6700},
+"基隆縣":{"桃園國際機場":1600,"台中清泉崗機場":3500,"高雄小港機場":7000},
+"宜蘭縣":{"桃園國際機場":2200,"台中清泉崗機場":4000,"高雄小港機場":8000},
+"新竹縣/市":{"桃園國際機場":1200,"台中清泉崗機場":1700,"高雄小港機場":5700},
+"苗栗縣":{"桃園國際機場":1700,"台中清泉崗機場":1300,"高雄小港機場":5000},
+"臺中市":{"桃園國際機場":2500,"台中清泉崗機場":0,"高雄小港機場":4500},
+"彰化縣":{"桃園國際機場":3200,"台中清泉崗機場":700,"高雄小港機場":3700},
+"南投縣":{"桃園國際機場":3300,"台中清泉崗機場":1200,"高雄小港機場":3700},
+"雲林縣":{"桃園國際機場":4000,"台中清泉崗機場":1400,"高雄小港機場":3200},
+"嘉義縣/市":{"桃園國際機場":4700,"台中清泉崗機場":2200,"高雄小港機場":2500},
+"台南市":{"桃園國際機場":5300,"台中清泉崗機場":2800,"高雄小港機場":1300},
+"高雄市":{"桃園國際機場":6000,"台中清泉崗機場":3300,"高雄小港機場":0},
+"屏東縣":{"桃園國際機場":6700,"台中清泉崗機場":4000,"高雄小港機場":1000}
+};
+
+// --- 中英文對照 ---
+const cityEn = {
+"台北市":"Taipei City","新北市":"New Taipei City","基隆縣":"Keelung","宜蘭縣":"Yilan","新竹縣/市":"Hsinchu","苗栗縣":"Miaoli",
+"臺中市":"Taichung","彰化縣":"Changhua","南投縣":"Nantou","雲林縣":"Yunlin","嘉義縣/市":"Chiayi","台南市":"Tainan",
+"高雄市":"Kaohsiung","屏東縣":"Pingtung"
+};
+const airportEn = {
+"桃園國際機場":"Taoyuan Airport","台中清泉崗機場":"Taichung Airport","高雄小港機場":"Kaohsiung Airport"
+};
+
+// --- 六語言翻譯 ---
+const translations = {
+zh:{seat:["5人座","7人座 (+100)","9人座 (+300)"],priceLabel:"價格",priceNote:"價格僅供參考，以實際報價為主",line:"💬 聯絡官方 LINE",call:"如須電話服務，請直接撥打："},
+en:{seat:["5 Seats","7 Seats (+100)","9 Seats (+300)"],priceLabel:"Price",priceNote:"Prices are for reference only",line:"💬 Contact LINE Official",call:"Call us directly if needed:"},
+vi:{seat:["5 Chỗ","7 Chỗ (+100)","9 Chỗ (+300)"],priceLabel:"Giá",priceNote:"Giá chỉ mang tính tham khảo",line:"💬 Liên hệ LINE",call:"Gọi trực tiếp nếu cần:"},
+th:{seat:["5 ที่นั่ง","7 ที่นั่ง (+100)","9 ที่นั่ง (+300)"],priceLabel:"ราคา",priceNote:"ราคาสำหรับการอ้างอิงเท่านั้น",line:"💬 ติดต่อ LINE",call:"โทรโดยตรงหากต้องการ:"},
+id:{seat:["5 Kursi","7 Kursi (+100)","9 Kursi (+300)"],priceLabel:"Harga",priceNote:"Harga hanya sebagai referensi",line:"💬 Hubungi LINE",call:"Hubungi langsung jika perlu:"},
+jp:{seat:["5人","7人 (+100)","9人 (+300)"],priceLabel:"料金",priceNote:"料金は参考です",line:"💬 LINE公式に連絡",call:"電話でのお問い合わせは:"}
+};
+
+let currentLang = "zh";
+
+// --- DOM ---
+const pickupSelect = document.getElementById('pickup');
+const dropoffSelect = document.getElementById('dropoff');
+const seatSelect = document.getElementById('seat');
+const priceBox = document.getElementById('priceBox');
+const formBox = document.getElementById('formBox');
+const resultBox = document.getElementById('resultBox');
+
+// --- 生成選單 ---
+const airports = ["桃園國際機場","台中清泉崗機場","高雄小港機場"];
+function generateSelect(){
+  pickupSelect.innerHTML=""; dropoffSelect.innerHTML=""; seatSelect.innerHTML="";
+  for(let city in airportPrices){
+    const opt = document.createElement('option'); opt.value=city; opt.text=`${city} / ${cityEn[city]}`;
+    pickupSelect.add(opt);
+  }
+  airports.forEach(airport=>{
+    const opt = document.createElement('option'); opt.value=airport; opt.text=`${airport} / ${airportEn[airport]}`;
+    dropoffSelect.add(opt);
+  });
+  translations[currentLang].seat.forEach(s=>{
+    const opt = document.createElement('option'); opt.value=s; opt.text=s;
+    seatSelect.add(opt);
+  });
+}
+generateSelect();
+
+// --- 語言切換 ---
+document.getElementById('langSelect').addEventListener('change',(e)=>{
+  currentLang=e.target.value; generateSelect();
+  document.getElementById('priceNote').innerText = translations[currentLang].priceNote;
+  document.getElementById('lineBtn').innerText = translations[currentLang].line;
+  document.getElementById('callText').innerText = translations[currentLang].call;
+});
+
+// --- 查詢價格 ---
+document.getElementById('checkPriceBtn').addEventListener('click',()=>{
+  const from = pickupSelect.value; const to = dropoffSelect.value; const seat = seatSelect.value;
+  if(!from||!to){alert("請選擇完整路線"); return;}
+  let basePrice = airportPrices[from][to] || 0;
+  if(seat.includes("7") && !seat.includes("Seats") && !seat.includes("7人")) basePrice+=100;
+  if(seat.includes("9") && !seat.includes("Seats") && !seat.includes("9人")) basePrice+=300;
+  priceBox.innerHTML=`${translations[currentLang].priceLabel}: ${basePrice} 起`;
+});
+
+// --- 預約表單 ---
+document.getElementById('reserveBtn').addEventListener('click',()=>{formBox.style.display='block';});
+
+// --- 生成訊息 ---
+document.getElementById('bookingForm').addEventListener('submit',(e)=>{
+  e.preventDefault();
+  const from = pickupSelect.value; const to = dropoffSelect.value; const seat = seatSelect.value;
+  const date = document.getElementById('pickupDate').value; const time = document.getElementById('pickupTime').value;
+  const phone = document.getElementById('phone').value||"未填"; const note = document.getElementById('note').value||"未填";
+  const message=`📢 叫車訊息\n上車縣市: ${from}\n下車機場: ${to}\n車型: ${seat}\n日期: ${date}\n時間: ${time}\n電話: ${phone}\n備註: ${note}`;
+  resultBox.style.display='block'; document.getElementById('resultText').value=message;
+});
+
+// --- 複製 ---
+document.getElementById('copyBtn').addEventListener('click',()=>{
+  const text = document.getElementById('resultText'); text.select(); document.execCommand('copy'); alert("已複製到剪貼簿");
+});
+
+// --- LINE & Call ---
+document.getElementById('lineBtn').addEventListener('click',()=>{window.open("https://line.me/R/ti/p/@429hdnhy","_blank");});
+document.getElementById('callBtn1').addEventListener('click',()=>{window.location.href="tel:0977269504";});
+document.getElementById('callBtn2').addEventListener('click',()=>{window.location.href="tel:0908232851";});
+</script>
+</body>
+</html>
